@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>星际待办</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --void: #050510;
+      --nebula-start: #7f5af0;
+      --nebula-end: #00c6ff;
+      --glass: rgba(19, 21, 44, 0.65);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glow: rgba(127, 90, 240, 0.6);
+      --text-primary: #f6f7ff;
+      --text-secondary: rgba(246, 247, 255, 0.65);
+      --accent: #2cb67d;
+      --danger: #ff6b6b;
+    }
+
+    ::selection {
+      background: rgba(127, 90, 240, 0.25);
+      color: var(--text-primary);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 2.5rem 1.5rem;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(44, 184, 125, 0.18), transparent 55%),
+        radial-gradient(circle at 85% 25%, rgba(127, 90, 240, 0.27), transparent 60%),
+        radial-gradient(circle at 50% 80%, rgba(0, 198, 255, 0.22), transparent 65%),
+        var(--void);
+      font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', 'Helvetica Neue', sans-serif;
+      color: var(--text-primary);
+      overflow: hidden;
+    }
+
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(2px 2px at 20px 20px, rgba(255, 255, 255, 0.7), transparent),
+        radial-gradient(1px 1px at 80px 120px, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 200px 300px, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 320px 180px, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1.5px 1.5px at 420px 50px, rgba(255, 255, 255, 0.4), transparent),
+        radial-gradient(1px 1px at 620px 200px, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(2px 2px at 740px 340px, rgba(255, 255, 255, 0.7), transparent);
+      transform: scale(1.5);
+      animation: drift 18s linear infinite;
+      opacity: 0.65;
+    }
+
+    @keyframes drift {
+      0% {
+        transform: scale(1.5) translateY(0px);
+      }
+      50% {
+        transform: scale(1.5) translateY(-25px);
+      }
+      100% {
+        transform: scale(1.5) translateY(0px);
+      }
+    }
+
+    .card {
+      width: min(500px, 100%);
+      padding: 2.5rem 2rem 2rem;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      box-shadow:
+        0 25px 50px -20px rgba(0, 0, 0, 0.45),
+        inset 0 0 0.75px rgba(255, 255, 255, 0.4);
+      backdrop-filter: blur(16px);
+      position: relative;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: inherit;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      mask: linear-gradient(180deg, rgba(255, 255, 255, 0.4), transparent 55%);
+      pointer-events: none;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      box-shadow: 0 0 120px 30px var(--glow);
+      opacity: 0;
+      animation: pulse 8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 0;
+      }
+      50% {
+        opacity: 0.35;
+      }
+    }
+
+    h1 {
+      margin: 0 0 1.5rem;
+      font-size: clamp(1.8rem, 3vw, 2.3rem);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      color: var(--text-primary);
+    }
+
+    h1 span {
+      display: inline-flex;
+      height: 0.28rem;
+      width: 2.6rem;
+      background: linear-gradient(90deg, var(--nebula-start), var(--nebula-end));
+      border-radius: 999px;
+      box-shadow: 0 0 15px rgba(127, 90, 240, 0.6);
+    }
+
+    form {
+      display: flex;
+      gap: 0.85rem;
+      align-items: center;
+      margin-bottom: 1.75rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 0.85rem 1.1rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(9, 11, 30, 0.65);
+      color: var(--text-primary);
+      font-size: 1rem;
+      transition: border 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: rgba(44, 182, 125, 0.8);
+      box-shadow: 0 0 0 4px rgba(44, 182, 125, 0.12);
+      transform: translateY(-1px);
+    }
+
+    button {
+      padding: 0.85rem 1.4rem;
+      border-radius: 999px;
+      border: none;
+      background: linear-gradient(135deg, var(--nebula-start), var(--nebula-end));
+      color: var(--text-primary);
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(127, 90, 240, 0.35);
+      filter: brightness(1.05);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 18px rgba(127, 90, 240, 0.32);
+    }
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.85rem;
+      max-height: 310px;
+      overflow-y: auto;
+      padding-right: 0.4rem;
+    }
+
+    ul::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ul::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+    }
+
+    ul::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, var(--nebula-start), var(--nebula-end));
+      border-radius: 999px;
+    }
+
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 1.1rem;
+      border-radius: 16px;
+      background: rgba(12, 14, 34, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 8px 20px rgba(10, 12, 30, 0.55);
+      transition: transform 0.2s ease, border-color 0.3s ease, background 0.3s ease;
+    }
+
+    li:hover {
+      transform: translateY(-3px);
+      border-color: rgba(127, 90, 240, 0.45);
+      background: rgba(12, 14, 34, 0.92);
+    }
+
+    .todo-text {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+
+    .todo-text::before {
+      content: "";
+      height: 12px;
+      width: 12px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(127, 90, 240, 0.85), rgba(0, 198, 255, 0.85));
+      box-shadow: 0 0 10px rgba(127, 90, 240, 0.6);
+      transition: transform 0.2s ease, opacity 0.3s ease;
+    }
+
+    li.completed .todo-text {
+      color: var(--text-secondary);
+      text-decoration: line-through;
+    }
+
+    li.completed .todo-text::before {
+      transform: scale(0.65);
+      opacity: 0.5;
+      box-shadow: none;
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .action-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(16, 18, 42, 0.9);
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px);
+      color: var(--text-primary);
+    }
+
+    .action-btn.complete:hover {
+      background: rgba(44, 182, 125, 0.18);
+      border-color: rgba(44, 182, 125, 0.5);
+      color: var(--accent);
+    }
+
+    .action-btn.delete:hover {
+      background: rgba(255, 107, 107, 0.15);
+      border-color: rgba(255, 107, 107, 0.5);
+      color: var(--danger);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      border-radius: 18px;
+      background: rgba(12, 14, 34, 0.75);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+    }
+
+    .empty-state strong {
+      display: block;
+      margin-bottom: 0.4rem;
+      letter-spacing: 0.04em;
+      color: var(--text-primary);
+    }
+
+    @media (max-width: 520px) {
+      body {
+        padding: 2rem 1.25rem;
+      }
+
+      .card {
+        padding: 2rem 1.5rem 1.6rem;
+      }
+
+      form {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="stars"></div>
+  <main class="card">
+    <h1><span></span>星际待办</h1>
+    <form id="todo-form" autocomplete="off">
+      <input id="todo-input" type="text" placeholder="下一项星际任务是什么？" aria-label="新增待办事项">
+      <button type="submit">添加</button>
+    </form>
+    <ul id="todo-list" aria-live="polite">
+      <li class="empty-state" id="empty-state">
+        <strong>目前一切就绪。</strong>
+        等你发布下一条任务指令。
+      </li>
+    </ul>
+  </main>
+  <script>
+    const form = document.getElementById('todo-form');
+    const input = document.getElementById('todo-input');
+    const list = document.getElementById('todo-list');
+    const placeholder = document.getElementById('empty-state');
+
+    const toggleEmptyState = () => {
+      const hasItems = list.querySelectorAll('li.todo-item').length > 0;
+      placeholder.style.display = hasItems ? 'none' : 'block';
+    };
+
+    const createTodoItem = (text) => {
+      const item = document.createElement('li');
+      item.className = 'todo-item';
+
+      const todoText = document.createElement('div');
+      todoText.className = 'todo-text';
+      todoText.textContent = text;
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      const completeBtn = document.createElement('button');
+      completeBtn.className = 'action-btn complete';
+      completeBtn.type = 'button';
+      completeBtn.setAttribute('aria-label', '标记完成');
+      completeBtn.textContent = '✓';
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'action-btn delete';
+      deleteBtn.type = 'button';
+      deleteBtn.setAttribute('aria-label', '删除任务');
+      deleteBtn.textContent = '✕';
+
+      completeBtn.addEventListener('click', () => {
+        item.classList.toggle('completed');
+        completeBtn.setAttribute('aria-pressed', item.classList.contains('completed'));
+      });
+
+      deleteBtn.addEventListener('click', () => {
+        item.remove();
+        toggleEmptyState();
+      });
+
+      actions.append(completeBtn, deleteBtn);
+      item.append(todoText, actions);
+      return item;
+    };
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const value = input.value.trim();
+      if (!value) {
+        input.focus();
+        return;
+      }
+
+      const item = createTodoItem(value);
+      list.appendChild(item);
+      toggleEmptyState();
+      input.value = '';
+      input.focus();
+    });
+  </script>
+</body>
+</html>
