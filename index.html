@@ -44,6 +44,121 @@
       overflow: hidden;
     }
 
+    .pomodoro {
+      position: fixed;
+      top: 1.75rem;
+      right: 1.75rem;
+      padding: 1rem 1.4rem;
+      border-radius: 20px;
+      background: linear-gradient(140deg, rgba(9, 11, 30, 0.85), rgba(32, 36, 72, 0.85));
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      box-shadow:
+        0 12px 35px rgba(8, 12, 35, 0.55),
+        inset 0 0 0.75px rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(18px);
+      display: grid;
+      gap: 0.75rem;
+      min-width: 210px;
+      color: var(--text-primary);
+      z-index: 5;
+    }
+
+    .pomodoro__title {
+      margin: 0;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+    }
+
+    .pomodoro__display {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-align: center;
+      color: var(--text-primary);
+      text-shadow: 0 0 18px rgba(127, 90, 240, 0.35);
+    }
+
+    .pomodoro__display--active {
+      text-shadow: 0 0 25px rgba(44, 182, 125, 0.65);
+      color: #bdf7dc;
+    }
+
+    .pomodoro__display--complete {
+      text-shadow: 0 0 22px rgba(255, 107, 107, 0.55);
+      color: #ffaba7;
+    }
+
+    .pomodoro__controls {
+      display: flex;
+      gap: 0.45rem;
+    }
+
+    .pomodoro__button {
+      flex: 1;
+      padding: 0.55rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(20, 24, 58, 0.75);
+      color: var(--text-primary);
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .pomodoro__button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(127, 90, 240, 0.28);
+      background: rgba(32, 36, 78, 0.85);
+    }
+
+    .pomodoro__button:active {
+      transform: translateY(0);
+      box-shadow: 0 3px 10px rgba(127, 90, 240, 0.2);
+    }
+
+    .pomodoro__button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      filter: saturate(0.85);
+    }
+
+    .pomodoro__button--start {
+      background: linear-gradient(130deg, rgba(44, 182, 125, 0.85), rgba(44, 182, 125, 0.55));
+      border-color: rgba(44, 182, 125, 0.65);
+      color: #06110b;
+    }
+
+    .pomodoro__button--start:hover {
+      background: linear-gradient(130deg, rgba(44, 182, 125, 1), rgba(44, 182, 125, 0.75));
+      color: #020604;
+    }
+
+    .pomodoro__button--stop {
+      background: linear-gradient(130deg, rgba(255, 107, 107, 0.85), rgba(255, 107, 107, 0.55));
+      border-color: rgba(255, 107, 107, 0.65);
+      color: #320303;
+    }
+
+    .pomodoro__button--stop:hover {
+      background: linear-gradient(130deg, rgba(255, 107, 107, 1), rgba(255, 107, 107, 0.75));
+      color: #1a0101;
+    }
+
+    @media (max-width: 720px) {
+      .pomodoro {
+        top: 1rem;
+        right: 50%;
+        transform: translateX(50%);
+        width: min(320px, calc(100% - 2rem));
+      }
+    }
+
     .stars {
       position: fixed;
       inset: 0;
@@ -323,6 +438,14 @@
         padding: 2rem 1.5rem 1.6rem;
       }
 
+      .pomodoro {
+        position: fixed;
+        top: 1rem;
+        right: 50%;
+        transform: translateX(50%);
+        width: calc(100% - 2rem);
+      }
+
       form {
         flex-direction: column;
       }
@@ -335,6 +458,15 @@
 </head>
 <body>
   <div class="stars"></div>
+  <aside class="pomodoro" aria-live="polite">
+    <p class="pomodoro__title">番茄钟</p>
+    <p class="pomodoro__display" id="pomodoro-display">25:00</p>
+    <div class="pomodoro__controls">
+      <button class="pomodoro__button pomodoro__button--start" id="pomodoro-start" type="button">开始</button>
+      <button class="pomodoro__button" id="pomodoro-pause" type="button">暂停</button>
+      <button class="pomodoro__button pomodoro__button--stop" id="pomodoro-stop" type="button">停止</button>
+    </div>
+  </aside>
   <main class="card">
     <h1><span></span>星际待办</h1>
     <form id="todo-form" autocomplete="off">
@@ -353,6 +485,98 @@
     const input = document.getElementById('todo-input');
     const list = document.getElementById('todo-list');
     const placeholder = document.getElementById('empty-state');
+    const pomodoroDisplay = document.getElementById('pomodoro-display');
+    const pomodoroStart = document.getElementById('pomodoro-start');
+    const pomodoroPause = document.getElementById('pomodoro-pause');
+    const pomodoroStop = document.getElementById('pomodoro-stop');
+
+    const DEFAULT_POMODORO_SECONDS = 25 * 60;
+    let remainingSeconds = DEFAULT_POMODORO_SECONDS;
+    let timerIntervalId = null;
+    let timerState = 'stopped';
+
+    const formatTime = (totalSeconds) => {
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+
+    const updatePomodoroDisplay = () => {
+      pomodoroDisplay.textContent = formatTime(remainingSeconds);
+      pomodoroDisplay.classList.toggle('pomodoro__display--active', timerState === 'running');
+      pomodoroDisplay.classList.toggle('pomodoro__display--complete', timerState === 'stopped' && remainingSeconds === 0);
+    };
+
+    const updatePomodoroControls = () => {
+      pomodoroStart.textContent = timerState === 'paused' ? '继续' : '开始';
+      pomodoroStart.disabled = timerState === 'running';
+      pomodoroPause.disabled = timerState !== 'running';
+      pomodoroStop.disabled = timerState === 'stopped' && remainingSeconds === DEFAULT_POMODORO_SECONDS;
+    };
+
+    const clearTimerInterval = () => {
+      if (timerIntervalId !== null) {
+        clearInterval(timerIntervalId);
+        timerIntervalId = null;
+      }
+    };
+
+    const completePomodoro = () => {
+      clearTimerInterval();
+      timerState = 'stopped';
+      updatePomodoroControls();
+      updatePomodoroDisplay();
+    };
+
+    const startPomodoro = () => {
+      if (timerState === 'running') {
+        return;
+      }
+
+      if (remainingSeconds === 0) {
+        remainingSeconds = DEFAULT_POMODORO_SECONDS;
+      }
+
+      timerState = 'running';
+      updatePomodoroControls();
+      updatePomodoroDisplay();
+
+      timerIntervalId = setInterval(() => {
+        if (remainingSeconds > 0) {
+          remainingSeconds -= 1;
+          updatePomodoroDisplay();
+          if (remainingSeconds === 0) {
+            completePomodoro();
+          }
+        }
+      }, 1000);
+    };
+
+    const pausePomodoro = () => {
+      if (timerState !== 'running') {
+        return;
+      }
+
+      clearTimerInterval();
+      timerState = 'paused';
+      updatePomodoroControls();
+      updatePomodoroDisplay();
+    };
+
+    const stopPomodoro = () => {
+      clearTimerInterval();
+      remainingSeconds = DEFAULT_POMODORO_SECONDS;
+      timerState = 'stopped';
+      updatePomodoroControls();
+      updatePomodoroDisplay();
+    };
+
+    pomodoroStart.addEventListener('click', startPomodoro);
+    pomodoroPause.addEventListener('click', pausePomodoro);
+    pomodoroStop.addEventListener('click', stopPomodoro);
+
+    updatePomodoroControls();
+    updatePomodoroDisplay();
 
     const toggleEmptyState = () => {
       const hasItems = list.querySelectorAll('li.todo-item').length > 0;
