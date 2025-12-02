@@ -7,7 +7,7 @@ export default defineConfig({
 
   // 如果你的仓库名不是 username.github.io，需要设置 base
   // base 格式为 '/仓库名/'
-  base: '/myblog/',
+  base: '/demo-hello/',
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
@@ -30,7 +30,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/hepingfly/myblog' }
+      { icon: 'github', link: 'https://github.com/hepingfly/demo-hello' }
     ],
 
     footer: {
